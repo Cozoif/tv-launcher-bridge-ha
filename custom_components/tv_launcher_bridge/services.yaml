@@ -1,0 +1,180 @@
+launch_app:
+  fields:
+    app:
+      required: true
+      example: "Jellyfin"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+close_app:
+  fields:
+    app:
+      required: true
+      example: "YouTube"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+send_key:
+  fields:
+    key:
+      required: true
+      example: "play_pause"
+      selector:
+        select:
+          custom_value: true
+          options:
+            - up
+            - down
+            - left
+            - right
+            - ok
+            - back
+            - home
+            - menu
+            - settings
+            - search
+            - assistant
+            - input
+            - guide
+            - info
+            - captions
+            - play_pause
+            - play
+            - pause
+            - stop
+            - next
+            - previous
+            - rewind
+            - fast_forward
+            - volume_up
+            - volume_down
+            - mute
+            - channel_up
+            - channel_down
+            - power
+            - wake
+            - sleep
+            - delete
+            - enter
+    hold:
+      default: false
+      selector:
+        boolean:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+play_show:
+  fields:
+    show:
+      required: true
+      example: "Bluey"
+      selector:
+        text:
+    season:
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: box
+    episode:
+      selector:
+        number:
+          min: 0
+          max: 999
+          mode: box
+    turn_on:
+      default: true
+      selector:
+        boolean:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+open_link:
+  fields:
+    url:
+      required: true
+      example: "https://www.youtube.com/watch?v=..."
+      selector:
+        text:
+    app:
+      example: "YouTube"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+search:
+  fields:
+    query:
+      required: true
+      example: "cooking shows"
+      selector:
+        text:
+    app:
+      example: "YouTube"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+type_text:
+  fields:
+    text:
+      required: true
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+send_intent:
+  fields:
+    action:
+      example: "android.intent.action.VIEW"
+      selector:
+        text:
+    data:
+      example: "https://example.com/watch/123"
+      selector:
+        text:
+    package:
+      example: "org.jellyfin.androidtv"
+      selector:
+        text:
+    component:
+      selector:
+        text:
+    category:
+      selector:
+        text:
+    mime_type:
+      selector:
+        text:
+    extras:
+      selector:
+        object:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
+adb_command:
+  fields:
+    command:
+      required: true
+      example: "dumpsys battery"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge

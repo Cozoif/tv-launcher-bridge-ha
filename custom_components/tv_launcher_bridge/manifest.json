@@ -1,0 +1,13 @@
+{
+  "domain": "tv_launcher_bridge",
+  "name": "TV Launcher Bridge",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Cozoif/tv-launcher-bridge-ha#readme",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.3.0",
+  "issue_tracker": "https://github.com/Cozoif/tv-launcher-bridge-ha/issues"
+}
