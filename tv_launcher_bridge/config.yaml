@@ -1,0 +1,27 @@
+name: TV Launcher Bridge
+version: "0.3.0"
+slug: tv_launcher_bridge
+description: PC-free Chromecast control using wireless ADB
+arch:
+  - amd64
+startup: application
+boot: auto
+init: false
+host_network: true
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:television
+options:
+  api_token: ""
+  api_bind: "127.0.0.1"
+  jellyfin_url: ""
+  jellyfin_api_key: ""
+  jellyfin_device: ""
+  allow_raw_commands: false
+schema:
+  api_token: password
+  api_bind: str
+  jellyfin_url: str
+  jellyfin_api_key: password
+  jellyfin_device: str
+  allow_raw_commands: bool

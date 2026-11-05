@@ -1,0 +1,207 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "TV Launcher Bridge",
+        "description": "Start the TV Launcher Bridge add-on, then enter 127.0.0.1 and the API token from its Configuration tab. Existing installations can use the HA VM address.",
+        "data": {
+          "host": "HA-hosted bridge address",
+          "port": "Port",
+          "token": "Add-on API token"
+        }
+      },
+      "reconfigure": {
+        "title": "TV Launcher Bridge",
+        "description": "Start the TV Launcher Bridge add-on, then enter 127.0.0.1 and the API token from its Configuration tab. Existing installations can use the HA VM address.",
+        "data": {
+          "host": "HA-hosted bridge address",
+          "port": "Port",
+          "token": "Add-on API token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Can't reach TV Launcher Bridge. Check that it is running and the address and port are right.",
+      "invalid_auth": "Wrong password."
+    },
+    "abort": {
+      "already_configured": "This TV Launcher Bridge is already set up."
+    }
+  },
+  "services": {
+    "launch_app": {
+      "name": "Open app",
+      "description": "Opens an app on the TV by name (e.g. Jellyfin) or package name.",
+      "fields": {
+        "app": {
+          "name": "App",
+          "description": "App name or package name."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "close_app": {
+      "name": "Close app",
+      "description": "Force-closes an app on the TV.",
+      "fields": {
+        "app": {
+          "name": "App",
+          "description": "App name or package name."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "send_key": {
+      "name": "Press button",
+      "description": "Presses a remote button on the TV.",
+      "fields": {
+        "key": {
+          "name": "Button",
+          "description": "Button name, e.g. play_pause, home, up. Any Android key name also works."
+        },
+        "hold": {
+          "name": "Hold",
+          "description": "Long-press the button."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "play_show": {
+      "name": "Play show on Jellyfin",
+      "description": "Turns on the TV, opens Jellyfin and plays a show or film (next unwatched episode unless season/episode given).",
+      "fields": {
+        "show": {
+          "name": "Show or film",
+          "description": "Name as it appears in Jellyfin."
+        },
+        "season": {
+          "name": "Season",
+          "description": "Season number (optional)."
+        },
+        "episode": {
+          "name": "Episode",
+          "description": "Episode number (optional)."
+        },
+        "turn_on": {
+          "name": "Turn on and open Jellyfin",
+          "description": "Wake the TV and open Jellyfin first."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "open_link": {
+      "name": "Open link",
+      "description": "Opens a link (web address or app deep link) on the TV, optionally inside a specific app.",
+      "fields": {
+        "url": {
+          "name": "Link",
+          "description": "The link to open."
+        },
+        "app": {
+          "name": "App",
+          "description": "Open it in this app (optional)."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "search": {
+      "name": "Search",
+      "description": "Searches the whole TV, or inside one app.",
+      "fields": {
+        "query": {
+          "name": "Search for",
+          "description": "What to look for."
+        },
+        "app": {
+          "name": "App",
+          "description": "Search inside this app (optional)."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "type_text": {
+      "name": "Type text",
+      "description": "Types into the text box that is open on the TV.",
+      "fields": {
+        "text": {
+          "name": "Text",
+          "description": "What to type."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "send_intent": {
+      "name": "Send command to app",
+      "description": "Sends an Android intent to an app (advanced: actions, deep links and extras).",
+      "fields": {
+        "action": {
+          "name": "Action",
+          "description": "e.g. android.intent.action.VIEW"
+        },
+        "data": {
+          "name": "Data",
+          "description": "A link or data address."
+        },
+        "package": {
+          "name": "App",
+          "description": "App name or package."
+        },
+        "component": {
+          "name": "Component",
+          "description": "package/.Activity"
+        },
+        "category": {
+          "name": "Category",
+          "description": "Intent category."
+        },
+        "mime_type": {
+          "name": "Type",
+          "description": "MIME type."
+        },
+        "extras": {
+          "name": "Extras",
+          "description": "Extra values, e.g. {\"query\": \"news\"}."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    },
+    "adb_command": {
+      "name": "ADB command",
+      "description": "Runs any ADB shell command on the TV and returns its output. Must be allowed in TV Launcher Bridge first.",
+      "fields": {
+        "command": {
+          "name": "Command",
+          "description": "The shell command."
+        },
+        "config_entry_id": {
+          "name": "TV",
+          "description": "Which TV (leave empty for all)."
+        }
+      }
+    }
+  }
+}
