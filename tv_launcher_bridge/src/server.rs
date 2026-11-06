@@ -243,6 +243,7 @@ fn handle(b: &Bridge, mut req: tiny_http::Request) {
             Some(s) => b.jellyfin_play(&s, num("season"), num("episode")),
             None => Err("add ?show=<name>".into()),
         },
+        ["watch", "sitcom"] => b.watch_sitcom(),
         ["watch"] => match get("show") {
             Some(s) => b.watch(&s, num("season"), num("episode")),
             None => Err("add ?show=<name>".into()),

@@ -75,6 +75,10 @@
         }
       }
     },
+    "play_sitcom": {
+      "name": "Continue a sitcom on Jellyfin",
+      "description": "Wake the TV and play a sitcom from Continue Watching or Next Up."
+    },
     "play_show": {
       "name": "Play show on Jellyfin",
       "description": "Turns on the TV, opens Jellyfin and plays a show or film (next unwatched episode unless season/episode given).",

@@ -1,5 +1,5 @@
 name: TV Launcher Bridge
-version: "0.3.0"
+version: "0.3.1"
 slug: tv_launcher_bridge
 description: PC-free Chromecast control using wireless ADB
 arch:

@@ -103,6 +103,7 @@ SCHEMAS = {
     "send_key": vol.Schema(
         {ENTRY: cv.string, vol.Required("key"): cv.string, vol.Optional("hold", default=False): cv.boolean}
     ),
+    "play_sitcom": vol.Schema({ENTRY: cv.string}),
     "play_show": vol.Schema(
         {
             ENTRY: cv.string,
@@ -156,6 +157,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                     r = await c.run(api.close(d["app"]))
                 case "send_key":
                     r = await c.run(api.key(d["key"], d["hold"]))
+                case "play_sitcom":
+                    r = await c.run(api.watch_sitcom())
                 case "play_show":
                     if d["turn_on"]:
                         r = await c.run(api.watch(d["show"], d.get("season"), d.get("episode")))

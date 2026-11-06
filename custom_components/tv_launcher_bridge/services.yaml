@@ -70,6 +70,12 @@ send_key:
       selector:
         config_entry:
           integration: tv_launcher_bridge
+play_sitcom:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: tv_launcher_bridge
 play_show:
   fields:
     show:
