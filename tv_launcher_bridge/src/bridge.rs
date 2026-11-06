@@ -656,53 +656,61 @@ impl Bridge {
 
     // ---------- Jellyfin: play a named show or film ----------
 
-    pub fn jellyfin_play(&self, show: &str, season: Option<u32>, episode: Option<u32>) -> Reply {
-        self.play_jellyfin(Some((show, season, episode)))
-    }
-
-    fn play_jellyfin(&self, selection: Option<(&str, Option<u32>, Option<u32>)>) -> Reply {
+    fn jellyfin(&self) -> Result<(Jellyfin, String), String> {
         let cfg = self.cfg();
         let base = cfg.jellyfin_url.trim().trim_end_matches('/').to_string();
         if base.is_empty() || cfg.jellyfin_api_key.trim().is_empty() {
             return Err("fill in the Jellyfin server address and API key first".into());
         }
-        let jf = Jellyfin {
-            base,
-            key: cfg.jellyfin_api_key.trim().to_string(),
-        };
-        let session = jf.find_tv_session(&cfg.jellyfin_device, selection.is_none())?;
+        Ok((Jellyfin { base, key: cfg.jellyfin_api_key.trim().to_string() }, cfg.jellyfin_device))
+    }
+
+    pub fn jellyfin_play(&self, show: &str, season: Option<u32>, episode: Option<u32>) -> Reply {
+        let (jf, device) = self.jellyfin()?;
+        let session = jf.find_tv_session(&device, false)?;
         let user = session["UserId"].as_str().unwrap_or("");
-        let (play_id, what, position) = if let Some((show, season, episode)) = selection {
-            let item = jf.find_item(show, user)?;
-            let id = item["Id"].as_str().unwrap_or("");
-            if item["Type"].as_str() == Some("Series") {
-                let (episode_id, label) = jf.pick_episode(id, user, season, episode)?;
-                (episode_id, label, 0)
-            } else {
-                (id.to_string(), item["Name"].as_str().unwrap_or(show).to_string(), 0)
-            }
+        let item = jf.find_item(show, user)?;
+        let id = item["Id"].as_str().unwrap_or("");
+        let (play_id, what) = if item["Type"].as_str() == Some("Series") {
+            jf.pick_episode(id, user, season, episode)?
         } else {
-            jf.pick_sitcom(user)?
+            (id.to_string(), item["Name"].as_str().unwrap_or(show).to_string())
         };
-        let sid = session["Id"].as_str().unwrap_or("");
-        let mut path = format!("/Sessions/{sid}/Playing?playCommand=PlayNow&itemIds={play_id}");
-        if position > 0 {
-            path.push_str(&format!("&startPositionTicks={position}"));
-        }
-        jf.post(&path)?;
-        Ok(format!("Playing {what} on Jellyfin"))
+        jf.play(&session, &play_id, &what, 0)
     }
 
     /// The whole routine: wake the TV, open Jellyfin, play the show.
     pub fn watch(&self, show: &str, season: Option<u32>, episode: Option<u32>) -> Reply {
-        self.watch_jellyfin(Some((show, season, episode)))
+        self.with_jellyfin_on_tv(|| self.jellyfin_play(show, season, episode))
     }
 
-    pub fn watch_sitcom(&self) -> Reply {
-        self.watch_jellyfin(None)
+    pub fn watch_sitcom(&self, ask: bool, show: Option<&str>) -> Result<(String, Vec<String>), String> {
+        self.with_jellyfin_on_tv(|| {
+            let (jf, device) = self.jellyfin()?;
+            let session = jf.find_tv_session(&device, true)?;
+            let user = session["UserId"].as_str().unwrap_or("");
+            let options = jf.sitcom_options(user, if ask || show.is_some() { usize::MAX } else { 1 })?;
+            if ask && show.is_none() && options.len() > 1 {
+                return Ok(("Choose a sitcom".into(), options.into_iter().map(|option| option.series_name).collect()));
+            }
+            let selected = if let Some(show) = show {
+                let mut matches = options.iter().filter(|option| {
+                    option.series_name.to_lowercase() == show.trim().to_lowercase()
+                });
+                let selected = matches.next().ok_or("That sitcom is no longer in the current choices")?;
+                if matches.next().is_some() {
+                    return Err("More than one series has that title".into());
+                }
+                selected
+            } else {
+                options.first().ok_or("no series tagged Sitcom in Continue Watching or Next Up")?
+            };
+            let message = jf.play(&session, &selected.episode_id, &selected.label, selected.position)?;
+            Ok((message, Vec::new()))
+        })
     }
 
-    fn watch_jellyfin(&self, selection: Option<(&str, Option<u32>, Option<u32>)>) -> Reply {
+    fn with_jellyfin_on_tv<T>(&self, play: impl Fn() -> Result<T, String>) -> Result<T, String> {
         let _ = self.power(true);
         let in_jellyfin = self
             .shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -n 1")
@@ -715,7 +723,7 @@ impl Bridge {
         }
         let mut last = String::new();
         for attempt in 0..4 {
-            match self.play_jellyfin(selection) {
+            match play() {
                 Ok(m) => return Ok(m),
                 Err(e) if e.contains("no Jellyfin app") && attempt < 3 => {
                     last = e;
@@ -878,6 +886,14 @@ __TLB_D__\nChromecast\n";
     }
 }
 
+struct SitcomOption {
+    series_id: String,
+    series_name: String,
+    episode_id: String,
+    label: String,
+    position: u64,
+}
+
 struct Jellyfin {
     base: String,
     key: String,
@@ -921,6 +937,16 @@ impl Jellyfin {
             .send_empty()
             .map_err(|e| format!("Jellyfin server: {e}"))?;
         Ok(())
+    }
+
+    fn play(&self, session: &serde_json::Value, id: &str, label: &str, position: u64) -> Reply {
+        let sid = session["Id"].as_str().unwrap_or("");
+        let mut path = format!("/Sessions/{sid}/Playing?playCommand=PlayNow&itemIds={id}");
+        if position > 0 {
+            path.push_str(&format!("&startPositionTicks={position}"));
+        }
+        self.post(&path)?;
+        Ok(format!("Playing {label} on Jellyfin"))
     }
 
     fn find_tv_session(&self, device: &str, require_tv: bool) -> Result<serde_json::Value, String> {
@@ -973,7 +999,7 @@ impl Jellyfin {
         )
     }
 
-    fn pick_sitcom(&self, user: &str) -> Result<(String, String, u64), String> {
+    fn sitcom_options(&self, user: &str, limit: usize) -> Result<Vec<SitcomOption>, String> {
         if user.is_empty() {
             return Err("the TV Jellyfin session has no signed-in user".into());
         }
@@ -984,6 +1010,7 @@ impl Jellyfin {
             ("/Shows/NextUp?disableFirstEpisode=true&enableResumable=false", false),
         ];
 
+        let mut options: Vec<SitcomOption> = Vec::new();
         for (queue, resume) in queues {
             let mut offset = 0;
             loop {
@@ -1017,11 +1044,27 @@ impl Jellyfin {
                         let Some(id) = episode["Id"].as_str().filter(|id| !id.is_empty()) else {
                             continue;
                         };
+                        let Some(series_id) = episode["SeriesId"].as_str() else {
+                            continue;
+                        };
+                        let Some(series_name) = episode["SeriesName"].as_str().filter(|name| !name.is_empty()) else {
+                            continue;
+                        };
                         let position = episode["UserData"]["PlaybackPositionTicks"].as_u64().unwrap_or(0);
-                        if (!resume || position > 0)
-                            && episode["SeriesId"].as_str().is_some_and(|id| sitcom_ids.contains(&id))
+                        if (resume && position == 0) || !sitcom_ids.contains(&series_id)
+                            || options.iter().any(|option| option.series_id == series_id)
                         {
-                            return Ok((id.to_string(), Self::episode_label(episode), if resume { position } else { 0 }));
+                            continue;
+                        }
+                        options.push(SitcomOption {
+                            series_id: series_id.to_string(),
+                            series_name: series_name.to_string(),
+                            episode_id: id.to_string(),
+                            label: Self::episode_label(episode),
+                            position: if resume { position } else { 0 },
+                        });
+                        if options.len() >= limit {
+                            return Ok(options);
                         }
                     }
                 }
@@ -1030,8 +1073,11 @@ impl Jellyfin {
                 }
                 offset += episodes.len();
             }
+            if !options.is_empty() {
+                break;
+            }
         }
-        Err("no series tagged Sitcom in Continue Watching or Next Up".into())
+        Ok(options)
     }
 
     fn pick_episode(

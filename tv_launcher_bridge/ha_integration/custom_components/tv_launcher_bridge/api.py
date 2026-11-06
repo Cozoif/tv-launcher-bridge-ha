@@ -81,8 +81,10 @@ class BridgeApi:
     async def intent(self, intent: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/intent", json=intent)
 
-    async def watch_sitcom(self) -> dict[str, Any]:
-        return await self._request("POST", "/watch/sitcom", timeout=90)
+    async def watch_sitcom(self, ask: bool = False, show: str | None = None) -> dict[str, Any]:
+        return await self._request(
+            "POST", "/watch/sitcom", {"ask": 1 if ask else None, "show": show}, timeout=90
+        )
 
     async def watch(self, show: str, season: int | None = None, episode: int | None = None) -> dict[str, Any]:
         return await self._request(

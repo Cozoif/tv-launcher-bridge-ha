@@ -72,6 +72,13 @@ send_key:
           integration: tv_launcher_bridge
 play_sitcom:
   fields:
+    ask:
+      default: false
+      selector:
+        boolean:
+    show:
+      selector:
+        text:
     config_entry_id:
       selector:
         config_entry:
