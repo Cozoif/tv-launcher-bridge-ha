@@ -23,8 +23,8 @@ ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
 tree = ET.parse('src/main/AndroidManifest.xml')
 r = tree.getroot()
 r.set('package', 'local.tvbridge.companion')
-r.set('{http://schemas.android.com/apk/res/android}versionCode', '2')
-r.set('{http://schemas.android.com/apk/res/android}versionName', '0.2.0')
+r.set('{http://schemas.android.com/apk/res/android}versionCode', '3')
+r.set('{http://schemas.android.com/apk/res/android}versionName', '0.2.1')
 tree.write(sys.argv[1], encoding='utf-8', xml_declaration=True)
 PY
 "$SDK_TOOLS/aapt2" link -o "$OUT/unsigned.apk" -I "$PLATFORM" --manifest "$OUT/AndroidManifest.xml" --java "$OUT/generated" --min-sdk-version 26 --target-sdk-version 35 "$OUT/resources.zip"

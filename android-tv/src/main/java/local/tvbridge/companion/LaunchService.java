@@ -19,6 +19,7 @@ import java.util.concurrent.*;
 public class LaunchService extends AccessibilityService {
     public static volatile boolean running;
     private volatile ServerSocket listener;
+    private boolean starting;
     private volatile boolean closing;
     private volatile String foreground = "";
     private final ExecutorService clients = new ThreadPoolExecutor(
@@ -27,21 +28,31 @@ public class LaunchService extends AccessibilityService {
     private final Map<String, Long> nonces = new HashMap<>();
     private final Handler main = new Handler(Looper.getMainLooper());
 
-    @Override protected void onServiceConnected() {
+    @Override protected synchronized void onServiceConnected() {
+        super.onServiceConnected();
+        if (starting || running) return;
+        closing = false;
+        starting = true;
+        record("Service connected", "");
         new Thread(() -> {
             try (ServerSocket socket = new ServerSocket()) {
                 socket.setReuseAddress(true);
                 socket.bind(new InetSocketAddress(8130));
                 listener = socket;
                 running = true;
+                record("Receiver listening on port 8130", "");
                 while (!closing) {
                     Socket client = socket.accept();
                     try { clients.execute(() -> serve(client)); }
                     catch (RejectedExecutionException e) { client.close(); }
                 }
-            } catch (IOException ignored) {
-                // Status is visible in the companion screen, never log request secrets.
-            } finally { listener = null; running = false; }
+            } catch (Exception error) {
+                if (!closing) record("Receiver failed", error.getClass().getSimpleName());
+            } finally {
+                listener = null;
+                running = false;
+                synchronized (LaunchService.this) { starting = false; }
+            }
         }, "companion-listener").start();
     }
 
@@ -51,8 +62,24 @@ public class LaunchService extends AccessibilityService {
             foreground = event.getPackageName().toString();
         }
     }
-    @Override public void onInterrupt() {}
+    private void record(String event, String error) {
+        getSharedPreferences("bridge", MODE_PRIVATE).edit()
+            .putString("service_event", event)
+            .putLong("service_event_time", System.currentTimeMillis())
+            .putString("service_error", error).apply();
+    }
+
+    @Override public void onInterrupt() {
+        record("Android interrupted service feedback", "");
+    }
+
+    @Override public boolean onUnbind(Intent intent) {
+        record("Android unbound accessibility service", "");
+        return super.onUnbind(intent);
+    }
     @Override public void onDestroy() {
+        record("Android destroyed accessibility service", "");
+        running = false;
         closing = true;
         try { if (listener != null) listener.close(); } catch (IOException ignored) {}
         clients.shutdownNow();

@@ -25,6 +25,7 @@ public class MainActivity extends Activity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final List<Button> networkButtons = new ArrayList<>();
     private boolean busy;
+    private boolean receiverPage;
     private int generation;
     private static final int INK = Color.rgb(232, 241, 250);
 
@@ -35,6 +36,7 @@ public class MainActivity extends Activity {
     }
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
     private void screen(String title, String subtitle) {
+        receiverPage = false;
         generation++;
         networkButtons.clear();
         ScrollView scroll = new ScrollView(this);
@@ -79,9 +81,39 @@ public class MainActivity extends Activity {
         button("Wireless debugging setup", this::debugging);
         label("Home Assistant connects to the desktop bridge. Keep that computer running. This companion does not replace the bridge or bypass Android app permissions.", 15);
     }
+    @Override protected void onResume() {
+        super.onResume();
+        if (receiverPage) receiver();
+    }
+
+    private boolean receiverEnabled() {
+        android.view.accessibility.AccessibilityManager manager =
+            (android.view.accessibility.AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
+        for (android.accessibilityservice.AccessibilityServiceInfo info :
+                manager.getEnabledAccessibilityServiceList(
+                    android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)) {
+            android.content.pm.ServiceInfo service = info.getResolveInfo().serviceInfo;
+            if (getPackageName().equals(service.packageName)
+                    && LaunchService.class.getName().equals(service.name)) return true;
+        }
+        return false;
+    }
+
     private void receiver() {
         screen("Home Assistant app launcher", "Prototype: enable the accessibility service, then test after standby with ADB disabled.");
-        label(LaunchService.running ? "Receiver is listening." : "Receiver is stopped. Enable the service or switch it off and on to retry.", 17);
+        receiverPage = true;
+        label("Companion 0.2.1 diagnostics", 17);
+        label("Accessibility: " + (receiverEnabled() ? "enabled" : "disabled"), 17);
+        label(LaunchService.running ? "Receiver is listening." : "Receiver is stopped or starting.", 17);
+        long eventTime = prefs.getLong("service_event_time", 0);
+        if (eventTime > 0) label("Last service event: "
+            + prefs.getString("service_event", "") + " at "
+            + java.text.DateFormat.getDateTimeInstance().format(new Date(eventTime)), 15);
+        String error = prefs.getString("service_error", "");
+        if (!error.isEmpty()) label("Receiver error: " + error, 15);
+        String crash = prefs.getString("last_crash", "");
+        if (!crash.isEmpty()) label("Last process crash: " + crash, 15);
+        button("Refresh service status", this::receiver);
         String saved = prefs.getString("receiver_token", "");
         if (saved.isEmpty()) {
             byte[] bytes = new byte[24];
