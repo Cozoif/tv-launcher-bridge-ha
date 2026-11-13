@@ -1,5 +1,5 @@
 name: TV Launcher Bridge
-version: "0.3.2"
+version: "0.4.0"
 slug: tv_launcher_bridge
 description: PC-free Chromecast control using wireless ADB
 arch:
@@ -14,6 +14,8 @@ panel_icon: mdi:television
 options:
   api_token: ""
   api_bind: "127.0.0.1"
+  companion_url: ""
+  companion_token: ""
   jellyfin_url: ""
   jellyfin_api_key: ""
   jellyfin_device: ""
@@ -21,6 +23,8 @@ options:
 schema:
   api_token: password
   api_bind: str
+  companion_url: str
+  companion_token: password
   jellyfin_url: str
   jellyfin_api_key: password
   jellyfin_device: str

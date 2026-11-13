@@ -22,7 +22,8 @@ def prepare(options, data=DATA):
     path = data / 'settings.json'
     config = json.loads(path.read_text()) if path.exists() else {'tv_port': 0}
     config.update({key: options[key] for key in
-                   ('jellyfin_url', 'jellyfin_api_key', 'jellyfin_device', 'allow_raw_commands')
+                   ('jellyfin_url', 'jellyfin_api_key', 'jellyfin_device', 'allow_raw_commands',
+                    'companion_url', 'companion_token')
                    if key in options})
     config.update(api_token=token, api_port=8125, auto_find_port=True)
     temp = path.with_suffix('.tmp')

@@ -1,4 +1,4 @@
-# TV Launcher Bridge 0.3.0 — local HA OS installation (amd64)
+# TV Launcher Bridge 0.4.0 — local HA OS installation (amd64)
 
 The bridge runs in the HA OS VM, independently of your PC. Your existing Google Cast integration stays installed and unchanged. No APK is required. Do not forward ports 8125 or 8099 through your router.
 
@@ -23,7 +23,7 @@ Optional command-line build outside HA, on an amd64 Docker host:
 
 ```sh
 cd tv_launcher_bridge
-docker build --platform linux/amd64 -t tv-launcher-bridge-addon:0.3.0 .
+docker build --platform linux/amd64 -t tv-launcher-bridge-addon:0.4.0 .
 ```
 
 Supervisor builds directly from the same Dockerfile; no prebuilt image registry is required. Leave Protection mode enabled. This add-on needs no privileged devices or Docker socket.
@@ -65,3 +65,7 @@ The optional existing TV companion APK accepts a bridge URL and token. To use it
 4. Restart the add-on and verify control without pairing again. Rebuild/reinstall the add-on using its update/rebuild control and verify identity survives. Restart HA OS and repeat.
 5. Toggle TV wireless debugging to change its connection port. Retry status; verify the new discovered port is saved. Turn off the TV Wi-Fi and confirm a clear failure, restore it and retry. Revoke pairing on the TV and verify errors until re-paired.
 6. Switch the PC completely off and run the same HA actions. This is the acceptance check for PC independence. No successful Chromecast operation or permanent connectivity is claimed by the local build tests.
+
+## Companion launcher prototype
+
+For launching apps without ADB, follow COMPANION-SETUP.md from the release or repository. The companion must be installed on the Chromecast and its accessibility service enabled by the user. This mode is awaiting device testing.

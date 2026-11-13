@@ -21,6 +21,8 @@ pub struct Config {
     pub auto_find_port: bool,
     /// Let Home Assistant send any ADB shell command.
     pub allow_raw_commands: bool,
+    pub companion_url: String,
+    pub companion_token: String,
     pub api_port: u16,
     pub api_token: String,
     pub jellyfin_url: String,
@@ -41,6 +43,8 @@ impl Default for Config {
             paired_with: String::new(),
             auto_find_port: true,
             allow_raw_commands: false,
+            companion_url: String::new(),
+            companion_token: String::new(),
             api_port: 8125,
             api_token: String::new(),
             jellyfin_url: String::new(),

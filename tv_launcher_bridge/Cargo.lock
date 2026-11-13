@@ -3007,6 +3007,7 @@ dependencies = [
  "curve25519-dalek",
  "eframe",
  "hkdf",
+ "hmac",
  "image",
  "rand",
  "rsa",

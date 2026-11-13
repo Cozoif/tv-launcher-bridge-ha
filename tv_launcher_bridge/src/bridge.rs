@@ -370,7 +370,58 @@ impl Bridge {
             .cloned()
     }
 
+    fn companion_request(&self, path: &str, body: Option<&str>) -> Result<serde_json::Value, String> {
+        use hmac::{Hmac, Mac};
+        use sha2::Sha256;
+        let cfg = self.cfg();
+        let base = cfg.companion_url.trim().trim_end_matches('/');
+        if !(base.starts_with("http://") || base.starts_with("https://")) || cfg.companion_token.len() < 32 {
+            return Err("Configure companion_url and its separate companion_token".into());
+        }
+        let method = if body.is_some() { "POST" } else { "GET" };
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?.as_secs().to_string();
+        let nonce: String = rand::random::<[u8; 16]>().iter().map(|b| format!("{b:02x}")).collect();
+        let payload = format!("{method}\n{path}\n{stamp}\n{nonce}\n{}", body.unwrap_or(""));
+        let mut mac = Hmac::<Sha256>::new_from_slice(cfg.companion_token.as_bytes())
+            .map_err(|e| e.to_string())?;
+        mac.update(payload.as_bytes());
+        let signature: String = mac.finalize().into_bytes().iter().map(|b| format!("{b:02x}")).collect();
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .timeout_global(Some(Duration::from_secs(7))).build().into();
+        let url = format!("{base}{path}");
+        let headers = |request: ureq::RequestBuilder<ureq::typestate::WithoutBody>| {
+            request.header("X-TV-Time", &stamp).header("X-TV-Nonce", &nonce).header("X-TV-Signature", &signature)
+        };
+        let mut response = if let Some(body) = body {
+            agent.post(&url).header("X-TV-Time", &stamp).header("X-TV-Nonce", &nonce)
+                .header("X-TV-Signature", &signature).header("Content-Type", "application/json")
+                .send(body)
+        } else {
+            headers(agent.get(&url)).call()
+        }.map_err(|_| "Companion unreachable or command rejected; check accessibility, secret, clock and network".to_string())?;
+        let text = response.body_mut().read_to_string().map_err(|e| e.to_string())?;
+        let result: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+        if result["ok"].as_bool() != Some(true) {
+            return Err("Companion rejected the request".into());
+        }
+        Ok(result)
+    }
+
     pub fn launch(&self, what: &str) -> Reply {
+        if !self.cfg().companion_url.trim().is_empty() {
+            let app = self.resolve_app(what).ok_or("Unknown app")?;
+            let body = serde_json::json!({ "package": app.package }).to_string();
+            self.companion_request("/launch", Some(&body))?;
+            for _ in 0..10 {
+                std::thread::sleep(Duration::from_millis(500));
+                let status = self.companion_request("/status", None)?;
+                if status["current_package"].as_str() == Some(app.package.as_str()) {
+                    return Ok(format!("Opened {}", app.name));
+                }
+            }
+            return Err("Companion accepted launch, but the app did not become visible".into());
+        }
         let app = self
             .resolve_app(what)
             .ok_or_else(|| format!("I don't know an app called \"{what}\". Add it in the Apps list."))?;
@@ -598,6 +649,23 @@ impl Bridge {
     // ---------- status ----------
 
     pub fn refresh_status(&self) -> Reply {
+        if !self.cfg().companion_url.trim().is_empty() {
+            let status = self.companion_request("/status", None)?;
+            let package = status["current_package"].as_str().unwrap_or("");
+            let name = self.resolve_app(package).map(|app| app.name).unwrap_or_else(|| package.into());
+            let mut shared = self.shared.lock().unwrap();
+            shared.tv.connected = Some(true);
+            shared.tv.current_package = package.into();
+            shared.tv.current_app = name.clone();
+            shared.tv.model = status["model"].as_str().unwrap_or("").into();
+            shared.tv.awake = status["awake"].as_bool();
+            shared.tv.media_state.clear();
+            shared.tv.media_title.clear();
+            shared.tv.media_subtitle.clear();
+            shared.tv.media_app.clear();
+            shared.tv.message = format!("Companion reachable, showing {name}");
+            return Ok(shared.tv.message.clone());
+        }
         let out = self.shell(
             "echo __TLB_A__; dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -n 1; \
              echo __TLB_P__; dumpsys power | grep -m1 mWakefulness=; \
@@ -711,11 +779,15 @@ impl Bridge {
     }
 
     fn with_jellyfin_on_tv<T>(&self, play: impl Fn() -> Result<T, String>) -> Result<T, String> {
-        let _ = self.power(true);
-        let in_jellyfin = self
-            .shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -n 1")
-            .map(|o| o.contains("org.jellyfin"))
-            .unwrap_or(false);
+        let companion = !self.cfg().companion_url.trim().is_empty();
+        let in_jellyfin = if companion {
+            self.companion_request("/status", None)?
+                ["current_package"].as_str() == Some("org.jellyfin.androidtv")
+        } else {
+            let _ = self.power(true);
+            self.shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -n 1")
+                .map(|o| o.contains("org.jellyfin")).unwrap_or(false)
+        };
         if !in_jellyfin {
             self.launch("org.jellyfin.androidtv")?;
             let wait = self.cfg().jellyfin_wait_s.clamp(1, 30);

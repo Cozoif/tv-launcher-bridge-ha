@@ -1,0 +1,3 @@
+<resources>
+    <string name="launcher_access_description">Allows authenticated Home Assistant commands to open apps you allow. Observes only the foreground app package, without reading screen text. Disable this service to stop remote app launching.</string>
+</resources>
